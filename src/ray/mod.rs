@@ -1,12 +1,12 @@
 
-mod traceable;
 mod intersection;
 
-pub use self::traceable::Traceable;
 pub use self::intersection::Intersection;
 
+use vector::Vector3;
+
 #[derive(Debug)]
-struct Ray {
+pub struct Ray {
     pub origin: Vector3,
     pub direction: Vector3
 }

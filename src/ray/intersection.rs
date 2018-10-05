@@ -1,3 +1,4 @@
+use vector::Vector3;
 
 #[derive(Debug)]
 pub struct Intersection {
