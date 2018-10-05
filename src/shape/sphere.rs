@@ -22,7 +22,7 @@ impl Sphere {
 
         // Test if inside sphere
         if distance < self.radius {
-            let distance_to_intersection = (self.radius * self.radius + distance * distance).sqrt();
+            let distance_to_intersection = (self.radius * self.radius - distance * distance).sqrt();
 
             let distance_to_entry = projection - distance_to_intersection;
             let distance_to_exit = projection + distance_to_intersection;

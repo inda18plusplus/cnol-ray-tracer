@@ -2,11 +2,11 @@
 
 ## TODO
 
-- [ ] Save to image
-- [ ] Camera perspective
-- [ ] Ray-Sphere intersection
+- [X] Save to image
+- [X] Camera perspective
+- [X] Ray-Sphere intersection
 - [ ] Ray-Plane intersection
-- [ ] Depth-testing
+- [X] Depth-testing
 - [ ] Composite objects
   - Union
   - Difference
@@ -22,4 +22,5 @@
 | The first sphere! The normals are encoded in the colors | 2018-10-05 | ![](gallery/out0.png) |
 | On the second day, he created the sun | 2018-10-05 | ![](gallery/out1.png) |
 | Fancy colors | 2018-10-05 | ![](gallery/out2.png) |
+| Depth testing | 2018-10-05 | ![](gallery/out3.png) |
 

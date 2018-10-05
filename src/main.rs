@@ -22,11 +22,19 @@ use color::Color;
 use shape::Shape;
 use ray::Ray;
 
+use std::time;
 
 fn main() {
     let scene = create_scene();
 
+    let start = time::Instant::now();
+
     let image = trace_scene(&scene, 800, 600);
+
+    let end = time::Instant::now();
+    let duration = end - start;
+    let seconds = duration.as_secs() as f64 + 1.0e-9 * duration.subsec_nanos() as f64;
+    println!("Done in {:.3} seconds ({:.1} fps)", seconds, 1.0 / seconds);
 
     image.save("out.png").unwrap();
 }
@@ -40,8 +48,15 @@ fn create_scene() -> Scene {
     });
 
     let material = Material::diffuse(Color::new(1.0, 0.0, 0.0));
+    scene.add_object(shape, material);
 
-    scene.add_object(shape.clone(), material);
+    let shape = Shape::Sphere(Sphere {
+        center: Vector3::new(1.5, 1.5, 7.5),
+        radius: 2.0
+    });
+
+    let material = Material::diffuse(Color::new(0.0, 1.0, 1.0));
+    scene.add_object(shape, material);
 
     scene
 }

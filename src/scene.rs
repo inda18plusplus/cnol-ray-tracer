@@ -44,7 +44,7 @@ impl Scene {
 
         if let Some((entry, object)) = self.get_intersection(&ray) {
             if let Some(ref material) = self.materials[object] {
-                let brightness = light_direction.dot(entry.normal);
+                let brightness = 0.5 + 0.5 * light_direction.dot(entry.normal);
                 let diffuse_color = material.color.apply_brightness(brightness);
 
                 color = diffuse_color;
@@ -86,7 +86,7 @@ impl Scene {
         }
 
         let hit = intersections.into_iter()
-            .min_by(|&(_, depth_a, _), &(_, depth_b, _)| depth_a.partial_cmp(&depth_b).unwrap());
+            .min_by(|(_, depth_a, _), (_, depth_b, _)| depth_a.partial_cmp(&depth_b).unwrap());
 
         hit.map(|(intersection, _, object)| (intersection, object))
     }
