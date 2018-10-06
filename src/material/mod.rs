@@ -11,28 +11,15 @@ use color::Color;
 #[derive(Debug)]
 pub struct Material {
     pub color: Color,
-    pub emission: Option<Emission>,
-    pub reflection: Option<Reflection>,
-    pub transparency: Option<Transparency>
+    pub roughness: f64
 }
 
 
 impl Material {
-    pub fn diffuse(color: Color) -> Material {
+    pub fn new(color: Color, roughness: f64) -> Material {
         Material {
             color,
-            emission: None,
-            reflection: None,
-            transparency: None,
-        }
-    }
-
-    pub fn emissive(color: Color, strength: f64) -> Material {
-        Material {
-            color,
-            emission: Some(Emission {strength}),
-            reflection: None,
-            transparency: None,
+            roughness
         }
     }
 }

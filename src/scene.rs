@@ -19,8 +19,8 @@ pub struct Scene {
 }
 
 const BOUNCES: usize = 3;
-const LIGHT_SAMPLES: usize = 40;
-const BOUNCE_SAMPLES: usize = 10;
+const LIGHT_SAMPLES: usize = 100;
+const BOUNCE_SAMPLES: usize = 20;
 
 impl Scene {
     pub fn new() -> Scene {
@@ -90,7 +90,7 @@ impl Scene {
                 let light_color = self.light_color(adjusted_entry.clone())
                     .multiply(material.color);
 
-                let bounce_color = self.bounce_color(ray, adjusted_entry, max_bounces);
+                let bounce_color = self.bounce_color(ray, adjusted_entry, max_bounces, material.roughness);
 
                 return Some(ambient_color.add(light_color).add(bounce_color));
             }
@@ -141,11 +141,12 @@ impl Scene {
         color
     }
 
-    fn bounce_color(&self, ray: &Ray, entry: Intersection, max_bounces: usize) -> Color {
+    fn bounce_color(&self, ray: &Ray, entry: Intersection, max_bounces: usize, roughness: f64) ->
+                                                                                           Color {
         let mut bounce_color = Color::black();
 
         for _ in 0..BOUNCE_SAMPLES {
-            let bounce_ray = Ray::scatter(ray, entry.clone(), 0.1);
+            let bounce_ray = Ray::scatter(ray, entry.clone(), roughness);
 
             if let Some(color) = self.trace_ray_color(&bounce_ray, max_bounces -
                 1) {

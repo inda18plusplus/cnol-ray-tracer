@@ -42,14 +42,14 @@ use std::sync::{
 
 
 const THREAD_COUNT: usize = 4;
-const BATCH_SIZE: usize = 4096;
+const BATCH_SIZE: usize = 512;
 
 fn main() {
     let scene = create_scene();
 
     let start = time::Instant::now();
 
-    let image = trace_scene(Arc::new(scene), 400, 400);
+    let image = trace_scene(Arc::new(scene), 800, 800);
 
     let end = time::Instant::now();
     let duration = end - start;
@@ -63,20 +63,36 @@ fn create_scene() -> Scene {
     let mut scene = Scene::new();
 
     let shape = Shape::Sphere(Sphere {
-        center: Vector3::new(0.0, -1.0, 5.0),
+        center: Vector3::new(-1.0, -1.25, 5.0),
+        radius: 0.75
+    });
+
+    let material = Material::new(Color::new(1.0, 0.0, 0.0), 0.0);
+    scene.add_object(shape, material);
+
+    let shape = Shape::Sphere(Sphere {
+        center: Vector3::new(1.2, 1.25, 5.0),
+        radius: 0.75
+    });
+
+    let material = Material::new(Color::new(0.0, 1.0, 1.0), 0.0);
+    scene.add_object(shape, material);
+
+    let shape = Shape::Sphere(Sphere {
+        center: Vector3::new(1.2, -2.0, 4.0),
         radius: 1.0
     });
 
-    let material = Material::diffuse(Color::new(1.0, 0.0, 0.0));
+    let material = Material::new(Color::new(1.0, 1.0, 1.0), 0.0);
     scene.add_object(shape, material);
 
     // Floor
     let shape = Shape::Plane(Plane {
-        origin: Vector3::new(0.0, -2.0, 0.0),
+        origin: Vector3::new(0.0, -3.0, 0.0),
         normal: Vector3::new(0.0, 1.0, 0.0),
     });
 
-    let material = Material::diffuse(Color::new(1.0, 1.0, 1.0));
+    let material = Material::new(Color::new(1.0, 1.0, 1.0), 0.1);
     scene.add_object(shape, material);
 
     // Right wall
@@ -84,7 +100,7 @@ fn create_scene() -> Scene {
         origin: Vector3::new(3.0, 0.0, 0.0),
         normal: Vector3::new(-1.0, 0.0, 0.0),
     });
-    let material = Material::diffuse(Color::new(0.0, 1.0, 0.0));
+    let material = Material::new(Color::new(0.0, 1.0, 0.0), 0.1);
     scene.add_object(shape, material);
 
     // Left wall
@@ -92,7 +108,7 @@ fn create_scene() -> Scene {
         origin: Vector3::new(-3.0, 0.0, 0.0),
         normal: Vector3::new(1.0, 0.0, 0.0),
     });
-    let material = Material::diffuse(Color::new(1.0, 1.0, 0.0));
+    let material = Material::new(Color::new(1.0, 1.0, 0.0), 0.1);
     scene.add_object(shape, material);
 
     // Back wall
@@ -100,7 +116,7 @@ fn create_scene() -> Scene {
         origin: Vector3::new(0.0, 0.0, 7.0),
         normal: Vector3::new(0.0, 0.0, -1.0),
     });
-    let material = Material::diffuse(Color::new(1.0, 0.0, 1.0));
+    let material = Material::new(Color::new(1.0, 0.0, 1.0), 0.1);
     scene.add_object(shape, material);
 
     // Front wall
@@ -108,7 +124,7 @@ fn create_scene() -> Scene {
         origin: Vector3::new(0.0, 0.0, -1.0),
         normal: Vector3::new(0.0, 0.0, 1.0),
     });
-    let material = Material::diffuse(Color::new(1.0, 1.0, 1.0));
+    let material = Material::new(Color::new(1.0, 1.0, 1.0), 0.1);
     scene.add_object(shape, material);
 
     // Ceiling
@@ -116,7 +132,7 @@ fn create_scene() -> Scene {
         origin: Vector3::new(0.0, 3.0, 0.0),
         normal: Vector3::new(0.0, -1.0, 0.0),
     });
-    let material = Material::diffuse(Color::new(0.0, 0.0, 1.0));
+    let material = Material::new(Color::new(0.0, 0.0, 1.0), 0.1);
     scene.add_object(shape, material);
 
     // Light
@@ -220,6 +236,8 @@ fn receive_image(
 
     let mut remaining_pixels = width * height;
 
+    let start_time = time::Instant::now();
+
     while let Ok(batch) = receiver.recv() {
         remaining_pixels -= batch.len() as u32;
 
@@ -227,7 +245,19 @@ fn receive_image(
             image.put_pixel(x, y, color.into());
         }
 
-        println!("{} pixels remaining", remaining_pixels);
+        let current_time = time::Instant::now();
+
+        let percentage = 1.0 - (remaining_pixels as f64 / (width * height) as f64);
+
+        let duration = current_time - start_time;
+        let time_elapsed = duration.as_secs() as f64 / 60.0;
+        let time_remaining = time_elapsed / percentage - time_elapsed;
+
+        println!("{} pixels remaining ({:.2}% in {:.1} minutes, approx. {:.1} minutes left)",
+                 remaining_pixels,
+                 percentage * 100.0,
+                 time_elapsed,
+                 time_remaining);
 
         if remaining_pixels == 0 {
             break;
@@ -258,7 +288,7 @@ fn get_ray_from_screen(x: u32, y: u32, width: u32, height: u32) -> Ray {
     let origin = Vector3 {
         x: 0.0,
         y: 0.0,
-        z: 0.0,
+        z: -1.0,
     };
 
     let direction = Vector3 {
