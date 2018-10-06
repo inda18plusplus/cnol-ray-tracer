@@ -5,15 +5,15 @@
 - [X] Save to image
 - [X] Camera perspective
 - [X] Ray-Sphere intersection
-- [ ] Ray-Plane intersection
+- [X] Ray-Plane intersection
 - [X] Depth-testing
 - [ ] Composite objects
   - Union
   - Difference
   - Intersection
   - Complement
-- [ ] Reflections
-- [ ] Shadows
+- [X] Reflections
+- [X] Shadows
 
 ## Gallery
 
