@@ -90,14 +90,19 @@ impl Scene {
                 for light in self.lights.iter() {
                     let point = entry.point - ray.direction * 0.0001;
 
-                    if let Some(distance) = self.distance_to_light(point, light) {
-                        let brightness = light.brightness(distance);
+                    const SAMPLES: usize = 100;
+                    const LIGHT_MULTIPLIER: f64 = 1.0 / SAMPLES as f64;
 
-                        let light_color = light.color().apply_brightness(brightness);
+                    for sample in 0..SAMPLES {
+                        if let Some(distance) = self.distance_to_light(point, light) {
+                            let brightness = light.brightness(distance);
 
-                        color = color.add(
-                            Color::multiply(material.color, light_color)
-                        );
+                            let light_color = light.color().apply_brightness(brightness * LIGHT_MULTIPLIER);
+
+                            color = color.add(
+                                Color::multiply(material.color, light_color)
+                            );
+                        }
                     }
                 }
 
