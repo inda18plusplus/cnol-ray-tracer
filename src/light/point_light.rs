@@ -17,11 +17,15 @@ impl PointLight {
     pub fn sample_point(&self) -> Vector3 {
         let mut rng = rand::thread_rng();
 
-        let offset = Vector3::new(
-            rng.gen_range(-self.size, self.size),
-            rng.gen_range(-self.size, self.size),
-            rng.gen_range(-self.size, self.size)
-        );
+        let offset = if self.size > 0.0 {
+             Vector3::new(
+                rng.gen_range(-self.size, self.size),
+                rng.gen_range(-self.size, self.size),
+                rng.gen_range(-self.size, self.size)
+            )
+        } else {
+            Vector3::zero()
+        };
 
         self.point + offset
     }

@@ -41,6 +41,15 @@ impl Vector3 {
     pub fn distance(self, other: Vector3) -> f64 {
         (self - other).length()
     }
+
+    // https://www.wikiwand.com/en/Cross_product
+    pub fn cross(self, other: Vector3) -> Vector3 {
+        Vector3 {
+            x: self.y * other.z - self.z * other.y,
+            y: self.z * other.x - self.x * other.z,
+            z: self.x * other.y - self.y * other.x,
+        }
+    }
 }
 
 impl ops::Add<Vector3> for Vector3 {

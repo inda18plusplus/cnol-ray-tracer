@@ -18,8 +18,9 @@ pub struct Scene {
     lights: Vec<Light>
 }
 
-const SAMPLES: usize = 10;
-const BOUNCES: usize = 10;
+const BOUNCES: usize = 3;
+const LIGHT_SAMPLES: usize = 40;
+const BOUNCE_SAMPLES: usize = 10;
 
 impl Scene {
     pub fn new() -> Scene {
@@ -84,14 +85,12 @@ impl Scene {
                 let ambient_color = material.color.apply_brightness(0.1);
 
                 let point = entry.point - ray.direction * 0.0001;
-                let light_color = self.light_color(point).multiply(material.color);
+                let adjusted_entry = Intersection {point, normal: entry.normal};
 
-                let bounce_ray = Ray::bounce(ray, entry);
-                let bounce_color = if let Some(bounce_color) = self.trace_ray_color(&bounce_ray, max_bounces - 1) {
-                    bounce_color.apply_brightness(0.3)
-                } else {
-                    Color::black()
-                };
+                let light_color = self.light_color(adjusted_entry.clone())
+                    .multiply(material.color);
+
+                let bounce_color = self.bounce_color(ray, adjusted_entry, max_bounces);
 
                 return Some(ambient_color.add(light_color).add(bounce_color));
             }
@@ -121,15 +120,18 @@ impl Scene {
         hit.map(|(intersection, _, object)| (intersection, object))
     }
 
-    fn light_color(&self, point: Vector3) -> Color {
+    fn light_color(&self, entry: Intersection) -> Color {
         let mut color = Color::black();
 
         for light in self.lights.iter() {
-            for sample in 0..SAMPLES {
-                if let Some(distance) = self.distance_to_light(point, light) {
-                    let brightness = light.brightness(distance);
+            for sample in 0..LIGHT_SAMPLES {
+                if let Some(distance) = self.distance_to_light(entry.point, light) {
+                    let diffuse = Vector3::dot(entry.point - light.sample_point(), -entry.normal);
 
-                    let light_color = light.color().apply_brightness(brightness / SAMPLES as f64);
+                    let brightness = light.brightness(distance) * if diffuse > 0.0 {diffuse} else {0.0};
+
+                    let light_color = light.color().apply_brightness(brightness /
+                        LIGHT_SAMPLES as f64);
 
                     color = color.add(light_color);
                 }
@@ -137,6 +139,23 @@ impl Scene {
         }
 
         color
+    }
+
+    fn bounce_color(&self, ray: &Ray, entry: Intersection, max_bounces: usize) -> Color {
+        let mut bounce_color = Color::black();
+
+        for _ in 0..BOUNCE_SAMPLES {
+            let bounce_ray = Ray::scatter(ray, entry.clone(), 0.1);
+
+            if let Some(color) = self.trace_ray_color(&bounce_ray, max_bounces -
+                1) {
+                bounce_color = bounce_color.add(
+                    color.apply_brightness(0.3 / BOUNCE_SAMPLES as f64)
+                );
+            }
+        }
+
+        bounce_color
     }
 
     fn distance_to_light(&self, point: Vector3, light: &Light) -> Option<f64> {

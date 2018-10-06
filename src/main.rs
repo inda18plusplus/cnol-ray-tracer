@@ -49,7 +49,7 @@ fn main() {
 
     let start = time::Instant::now();
 
-    let image = trace_scene(Arc::new(scene), 800, 800);
+    let image = trace_scene(Arc::new(scene), 400, 400);
 
     let end = time::Instant::now();
     let duration = end - start;
@@ -121,16 +121,16 @@ fn create_scene() -> Scene {
 
     // Light
     let light = Light::Point(PointLight {
-        point: Vector3::new(-0.2, 2.2, 5.0),
+        point: Vector3::new(-2.2, 2.2, 2.0),
         color: Color::white(),
-        size: 0.05
+        size: 0.2
     });
     scene.add_light(light);
 
     let light = Light::Point(PointLight {
-        point: Vector3::new(2.0, 2.2, 5.0),
+        point: Vector3::new(-1.0, 0.2, 1.0),
         color: Color::white(),
-        size: 0.25
+        size: 0.2
     });
     scene.add_light(light);
 
@@ -227,7 +227,7 @@ fn receive_image(
             image.put_pixel(x, y, color.into());
         }
 
-        println!("Got {} remaining", remaining_pixels);
+        println!("{} pixels remaining", remaining_pixels);
 
         if remaining_pixels == 0 {
             break;
