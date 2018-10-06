@@ -23,17 +23,33 @@ use color::Color;
 use shape::Shape;
 use ray::Ray;
 
-use std::time;
 use shape::Plane;
 use light::Light;
 use light::PointLight;
+
+use std::time;
+use std::thread;
+use std::sync::{
+    Arc,
+    Mutex,
+    MutexGuard,
+    mpsc,
+    mpsc::{
+        Sender,
+        Receiver
+    }
+};
+
+
+const THREAD_COUNT: usize = 4;
+const BATCH_SIZE: usize = 4096;
 
 fn main() {
     let scene = create_scene();
 
     let start = time::Instant::now();
 
-    let image = trace_scene(&scene, 800, 800);
+    let image = trace_scene(Arc::new(scene), 800, 800);
 
     let end = time::Instant::now();
     let duration = end - start;
@@ -122,23 +138,105 @@ fn create_scene() -> Scene {
     scene
 }
 
-fn trace_scene(scene: &Scene, image_width: u32, image_height: u32) -> DynamicImage {
-    let mut image = DynamicImage::new_rgb8(image_width, image_height);
+fn trace_scene(scene: Arc<Scene>, image_width: u32, image_height: u32) -> DynamicImage {
+    let mut pixels = Arc::new(Mutex::new(get_pixels(image_width, image_height)));
 
-    for y in 0..image_height {
-        for x in 0..image_width {
-            let ray = get_ray_from_screen(x, y, image_width, image_height);
+    let (sender, receiver) = mpsc::channel();
 
-            let color = scene.trace(ray);
+    let mut threads = Vec::new();
 
-            image.put_pixel(x, y, color.into());
-        }
+    for _ in 0..THREAD_COUNT {
+        let pixels = pixels.clone();
+        let sender = sender.clone();
+        let scene = scene.clone();
 
-        println!("{:.3}%", (y as f64 + 1.0) / (image_height as f64) * 100.0);
+        threads.push(thread::spawn(move || {
+            process_pixels(pixels, sender, scene, image_width, image_height);
+        }));
+    }
+
+    let image = receive_image(receiver, image_width, image_height);
+
+    println!("Waiting for threads to join...");
+    for thread in threads {
+        thread.join().unwrap();
     }
 
     image
 }
+
+
+fn get_pixels(width: u32, height: u32) -> Vec<(u32, u32)> {
+    let mut pixels = Vec::new();
+
+    for y in 0..height {
+        for x in 0..width {
+            pixels.push((x, y));
+        }
+    }
+
+    pixels
+}
+
+fn get_pixel_batch(pixels: &mut MutexGuard<Vec<(u32, u32)>>, batch_size: usize)
+    -> Vec<(u32, u32)> {
+    if pixels.len() < batch_size {
+        pixels.split_off(0)
+    } else {
+        let index = pixels.len() - batch_size;
+        pixels.split_off(index)
+    }
+}
+
+fn process_pixels(
+    pixels: Arc<Mutex<Vec<(u32, u32)>>>,
+    sender: Sender<Vec<(u32, u32, Color)>>,
+    scene: Arc<Scene>,
+    width: u32, height: u32
+) {
+    loop {
+        let batch = get_pixel_batch(&mut pixels.lock().unwrap(), BATCH_SIZE);
+        if batch.len() == 0 {
+            break;
+        }
+
+        let mut results = Vec::new();
+        for (x, y) in batch {
+            let ray = get_ray_from_screen(x, y, width, height);
+
+            let color = scene.trace(ray);
+            results.push((x, y, color));
+        }
+
+        sender.send(results).unwrap();
+    }
+}
+
+fn receive_image(
+    receiver: Receiver<Vec<(u32, u32, Color)>>,
+    width: u32, height: u32
+) -> DynamicImage {
+    let mut image = DynamicImage::new_rgb8(width, height);
+
+    let mut remaining_pixels = width * height;
+
+    while let Ok(batch) = receiver.recv() {
+        remaining_pixels -= batch.len() as u32;
+
+        for (x, y, color) in batch {
+            image.put_pixel(x, y, color.into());
+        }
+
+        println!("Got {} remaining", remaining_pixels);
+
+        if remaining_pixels == 0 {
+            break;
+        }
+    }
+
+    image
+}
+
 
 
 // Hjälp med den linjära algebran: https://www.scratchapixel

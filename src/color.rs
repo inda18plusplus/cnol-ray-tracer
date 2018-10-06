@@ -1,5 +1,7 @@
 use image::Rgba;
 
+use std::fmt;
+
 #[derive(Debug, Copy, Clone)]
 pub struct Color {
     pub r: f64,
@@ -73,5 +75,16 @@ impl Into<Rgba<u8>> for Color {
         Rgba {
             data: self.into()
         }
+    }
+}
+
+
+impl fmt::Display for Color {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let r = float_to_byte_color(self.r);
+        let g = float_to_byte_color(self.g);
+        let b = float_to_byte_color(self.b);
+
+        write!(f, "#{:x}{:x}{:x}", r, g, b)
     }
 }

@@ -18,6 +18,9 @@ pub struct Scene {
     lights: Vec<Light>
 }
 
+const SAMPLES: usize = 10;
+const LIGHT_MULTIPLIER: f64 = 1.0 / SAMPLES as f64;
+
 impl Scene {
     pub fn new() -> Scene {
         Scene {
@@ -90,8 +93,6 @@ impl Scene {
                 for light in self.lights.iter() {
                     let point = entry.point - ray.direction * 0.0001;
 
-                    const SAMPLES: usize = 100;
-                    const LIGHT_MULTIPLIER: f64 = 1.0 / SAMPLES as f64;
 
                     for sample in 0..SAMPLES {
                         if let Some(distance) = self.distance_to_light(point, light) {
