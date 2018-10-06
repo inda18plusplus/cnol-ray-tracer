@@ -1,6 +1,9 @@
 use vector::Vector3;
 use ray::Ray;
-use ray::Intersection;
+use ray::{
+    Intersection,
+    EntryExit
+};
 
 #[derive(Debug, Clone)]
 pub struct Sphere {
@@ -11,7 +14,7 @@ pub struct Sphere {
 
 impl Sphere {
     /// Returns the entry and exit points of a ray respectively
-    pub fn intersection(&self, ray: &Ray) -> (Option<Intersection>, Option<Intersection>) {
+    pub fn intersection(&self, ray: &Ray) -> EntryExit {
         let projection = Vector3::dot(self.center - ray.origin, ray.direction);
 
         // The point on the ray closest to the center of the sphere

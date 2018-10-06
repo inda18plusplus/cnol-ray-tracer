@@ -6,4 +6,4 @@ pub struct Intersection {
     pub normal: Vector3
 }
 
-
+pub type EntryExit = (Option<Intersection>, Option<Intersection>);

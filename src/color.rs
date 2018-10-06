@@ -29,6 +29,22 @@ impl Color {
 
         self
     }
+
+    pub fn add(mut self, other: Color) -> Color {
+        self.r += other.r;
+        self.g += other.g;
+        self.b += other.b;
+
+        self
+    }
+
+    pub fn multiply(mut self, other: Color) -> Color {
+        self.r *= other.r;
+        self.g *= other.g;
+        self.b *= other.b;
+
+        self
+    }
 }
 
 impl Into<[u8; 4]> for Color {
@@ -45,6 +61,8 @@ impl Into<[u8; 4]> for Color {
 fn float_to_byte_color(float: f64) -> u8 {
     if float < 0.0 {
         0
+    } else if float > 1.0 {
+        255
     } else {
         (float * 255.0).floor() as u8
     }

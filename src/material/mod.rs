@@ -26,4 +26,13 @@ impl Material {
             transparency: None,
         }
     }
+
+    pub fn emissive(color: Color, strength: f64) -> Material {
+        Material {
+            color,
+            emission: Some(Emission {strength}),
+            reflection: None,
+            transparency: None,
+        }
+    }
 }

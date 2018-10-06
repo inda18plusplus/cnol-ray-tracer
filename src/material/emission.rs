@@ -1,5 +1,5 @@
 
 #[derive(Debug)]
 pub struct Emission {
-    strength: f64
+    pub strength: f64
 }
