@@ -27,4 +27,5 @@
 | Shadows are hard | 2018-10-06 | ![](gallery/out5.png) |
 | Now they are soft! ...but kind of noisy | 2018-10-06 | ![](gallery/out6.png) |
 | That's better, although the render times aren't... | 2018-10-06 | ![](gallery/out7.png) |
+| Shiny! | 2018-10-06 | ![](gallery/out8.png) |
 
