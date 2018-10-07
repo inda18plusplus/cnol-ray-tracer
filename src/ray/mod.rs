@@ -51,11 +51,6 @@ impl Ray {
 
         bounce
     }
-
-    /// The distance to intersection
-    pub fn distance(&self, intersection: &Intersection) -> f64 {
-        Vector3::distance(self.origin, intersection.point)
-    }
 }
 
 

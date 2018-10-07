@@ -18,9 +18,9 @@ pub struct Scene {
     lights: Vec<Light>
 }
 
-const MAX_BOUNCES: usize = 40;
-const MAX_LIGHT_SAMPLES: usize = 20;
-const MAX_BOUNCE_SAMPLES: usize = 5;
+const MAX_BOUNCES: usize = 10;
+const MAX_LIGHT_SAMPLES: usize = 40;
+const MAX_BOUNCE_SAMPLES: usize = 10;
 
 struct RayProperties {
     bounces: usize,
@@ -97,7 +97,7 @@ impl Scene {
                 let ambient_color = material.color.apply_brightness(0.1);
 
                 let point = entry.point - ray.direction * 0.0001;
-                let adjusted_entry = Intersection {point, normal: entry.normal};
+                let adjusted_entry = Intersection {point, ..entry};
 
                 let light_color = self.light_color(adjusted_entry.clone(), properties.light_samples)
                     .multiply(material.color);
@@ -116,20 +116,18 @@ impl Scene {
 
         for &object in self.objects.iter() {
             if let Some(ref shape) = self.shapes[object] {
-                let (entry, _) = shape.intersection(ray);
-
-                if let Some(entry) = entry {
-                    let depth = Vector3::distance(ray.origin, entry.point);
-
-                    intersections.push((entry, depth, object));
+                if let Some((entry, _)) = shape.first_intersection(ray) {
+                    if entry.distance > 0.0 {
+                        intersections.push((entry, object));
+                    }
                 }
             }
         }
 
-        let hit = intersections.into_iter()
-            .min_by(|(_, depth_a, _), (_, depth_b, _)| depth_a.partial_cmp(&depth_b).unwrap());
-
-        hit.map(|(intersection, _, object)| (intersection, object))
+        intersections.into_iter()
+            .min_by(|(a, _), (b, _)| {
+                a.distance.partial_cmp(&b.distance).unwrap()
+            })
     }
 
     fn light_color(&self, entry: Intersection, samples: usize) -> Color {
@@ -138,6 +136,7 @@ impl Scene {
         for light in self.lights.iter() {
             for _ in 0..samples {
                 if let Some(distance) = self.distance_to_light(entry.point, light) {
+
                     let diffuse = Vector3::dot(entry.point - light.sample_point(), -entry.normal);
 
                     let brightness = light.brightness(distance) * if diffuse > 0.0 {diffuse} else {0.0};
@@ -183,21 +182,22 @@ impl Scene {
     fn distance_to_light(&self, point: Vector3, light: &Light) -> Option<f64> {
         let delta = light.sample_point() - point;
 
-        let ray = Ray {
+        let light_ray = Ray {
             origin: point,
             direction: delta.normal(),
         };
 
-        if let Some((entry, _)) = self.get_intersection(&ray) {
-            let light_depth = delta.length();
-            let entry_depth = Vector3::distance(entry.point, point);
+        let light_depth = delta.length();
 
-            if light_depth < entry_depth {
-                return Some(light_depth);
+        if let Some((entry, _)) = self.get_intersection(&light_ray) {
+            if light_depth < entry.distance {
+                Some(light_depth)
+            } else {
+                None
             }
+        } else {
+            Some(light_depth)
         }
-
-        None
     }
 }
 

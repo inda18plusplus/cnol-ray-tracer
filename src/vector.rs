@@ -1,7 +1,7 @@
 use std::fmt;
 use std::ops;
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct Vector3 {
     pub x: f64,
     pub y: f64,
@@ -131,8 +131,8 @@ impl fmt::Display for Vector3 {
     }
 }
 
-impl fmt::Debug for Vector3 {
-    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        (self as &fmt::Display).fmt(formatter)
-    }
-}
+// impl fmt::Debug for Vector3 {
+//     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+//         (self as &fmt::Display).fmt(formatter)
+//     }
+// }

@@ -14,7 +14,7 @@ pub struct Sphere {
 
 impl Sphere {
     /// Returns the entry and exit points of a ray respectively
-    pub fn intersection(&self, ray: &Ray) -> EntryExit {
+    pub fn intersection(&self, ray: &Ray) -> Vec<EntryExit> {
         let projection = Vector3::dot(self.center - ray.origin, ray.direction);
 
         // The point on the ray closest to the center of the sphere
@@ -33,20 +33,16 @@ impl Sphere {
             let entry = self.intersection_along_ray(distance_to_entry, ray);
             let exit = self.intersection_along_ray(distance_to_exit, ray);
 
-            (entry, exit)
+            vec![(entry, exit)]
         } else {
-            (None, None)
+            Vec::new()
         }
     }
 
-    fn intersection_along_ray(&self, distance_along_ray: f64, ray: &Ray) -> Option<Intersection> {
-        if distance_along_ray > 0.0 {
-            let point = ray.origin + distance_along_ray * ray.direction;
-            let normal = Vector3::normal(point - self.center);
-            Some(Intersection { point, normal })
-        } else {
-            None
-        }
+    fn intersection_along_ray(&self, distance: f64, ray: &Ray) -> Intersection {
+        let point = ray.origin + distance * ray.direction;
+        let normal = Vector3::normal(point - self.center);
+        Intersection { point, normal, distance }
     }
 }
 

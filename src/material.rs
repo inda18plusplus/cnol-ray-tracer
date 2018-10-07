@@ -1,6 +1,6 @@
 use color::Color;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Material {
     pub color: Color,
     pub roughness: f64,

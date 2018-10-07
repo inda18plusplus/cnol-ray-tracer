@@ -22,7 +22,23 @@ pub enum Shape {
 
 impl Shape {
     /// Return the first entry and exit pair of intersections
-    pub fn intersection(&self, ray: &Ray) -> EntryExit {
+    pub fn first_intersection(&self, ray: &Ray) -> Option<EntryExit> {
+        let intersections = match self {
+            Shape::Sphere(sphere) => sphere.intersection(ray),
+            Shape::Plane(plane) => plane.intersection(ray),
+
+            Shape::Intersection(a, b) => intersection(ray, a, b),
+            Shape::Difference(a, b) => difference(ray, a, b),
+        };
+
+        if intersections.len() == 0 {
+            None
+        } else {
+            intersections.first().map(|a| a.clone())
+        }
+    }
+
+    pub fn all_intersections(&self, ray: &Ray) -> Vec<EntryExit> {
         match self {
             Shape::Sphere(sphere) => sphere.intersection(ray),
             Shape::Plane(plane) => plane.intersection(ray),
@@ -34,58 +50,94 @@ impl Shape {
 }
 
 
-fn intersection(ray: &Ray, a: &Shape, b: &Shape) -> EntryExit {
-    let (a_entry, a_exit) = a.intersection(ray);
-    let (b_entry, b_exit) = b.intersection(ray);
-
-    if a_entry.is_some() && b_entry.is_some() {
-        let entry = ray_last(ray, a_entry.unwrap(), b_entry.unwrap());
-        let exit = ray_first(ray, a_exit.unwrap(), b_exit.unwrap());
-
-        (Some(entry), Some(exit))
-    } else {
-        (None, None)
-    }
+fn intersection(ray: &Ray, a: &Shape, b: &Shape) -> Vec<EntryExit> {
+    let regions = get_regions(ray, a, b);
+    regions.into_iter()
+        .filter(|region| region.a && region.b)
+        .map(|region| (region.start, region.end))
+        .collect()
 }
 
-fn difference(ray: &Ray, a: &Shape, b: &Shape) -> EntryExit {
-    if let (Some(a_entry), Some(a_exit)) = a.intersection(ray) {
-        if let (Some(b_entry), Some(b_exit)) = b.intersection(ray) {
-            let a_entry_distance = ray.distance(&a_entry);
-            let b_entry_distance = ray.distance(&b_entry);
+fn difference(ray: &Ray, a: &Shape, b: &Shape) -> Vec<EntryExit> {
+    let regions = get_regions(ray, a, b);
 
-            if b_entry_distance < a_entry_distance {
-                let a_exit_distance = ray.distance(&a_exit);
-                let b_exit_distance = ray.distance(&b_exit);
+    regions.into_iter()
+        .filter(|region| region.a && !region.b)
+        .map(|region| (region.start, region.end))
+        .collect()
+}
 
-                if b_exit_distance < a_exit_distance {
-                    (Some(b_exit.invert()), Some(a_exit))
-                } else {
-                    (None, None)
-                }
-            } else {
-                (Some(a_entry), Some(b_entry.invert()))
-            }
-        } else {
-            (Some(a_entry), Some(a_exit))
+
+#[derive(Clone, Debug)]
+struct Region {
+    start: Intersection,
+    end: Intersection,
+    a: bool,
+    b: bool
+}
+
+
+fn get_regions(ray: &Ray, a: &Shape, b: &Shape) -> Vec<Region> {
+    enum Owner {A, B}
+
+    let a_intersections = a.all_intersections(ray);
+    let b_intersections = b.all_intersections(ray);
+
+    let mut intersections = a_intersections.into_iter().flat_map(|(entry, exit)|{
+        vec![(entry, Owner::A), (exit.inverse(), Owner::A)]
+    }).chain(b_intersections.into_iter().flat_map(|(entry, exit)|{
+        vec![(entry, Owner::B), (exit.inverse(), Owner::B)]
+    })).collect::<Vec<_>>();
+
+    intersections.sort_by(|a, b| a.0.distance.partial_cmp(&b.0.distance).unwrap());
+
+    use std::f64::INFINITY;
+    let mut regions = vec![
+        Region {
+            start: Intersection {
+                point: ray.direction * -INFINITY,
+                normal: -ray.direction,
+                distance: -INFINITY,
+            },
+            end: Intersection {
+                point: ray.direction * -INFINITY,
+                normal: -ray.direction,
+                distance: -INFINITY,
+            },
+            a: false,
+            b: false,
         }
-    } else {
-        (None, None)
+    ];
+
+    for (i, (intersection, owner)) in intersections.into_iter().enumerate() {
+        let (previous_a, previous_b) = {
+            let previous_region = &mut regions[i];
+
+            previous_region.end = intersection.clone().inverse();
+
+            (previous_region.a, previous_region.b)
+        };
+
+        let (a, b) = match owner {
+            Owner::A => (!previous_a, previous_b),
+            Owner::B => (previous_a, !previous_b),
+        };
+
+        let region = Region {
+            start: intersection.clone(),
+            end: intersection,
+            a,
+            b,
+        };
+
+        regions.push(region);
     }
-}
 
-/// Return the intersection which was intersected first
-fn ray_first(ray: &Ray, a: Intersection, b: Intersection) -> Intersection {
-    let a_distance = ray.distance(&a);
-    let b_distance = ray.distance(&b);
+    regions.last_mut().map(|region| region.end = Intersection {
+        point: ray.direction * INFINITY,
+        normal: ray.direction,
+        distance: INFINITY,
+    });
 
-    if a_distance < b_distance {a} else {b}
-}
-
-/// Return the intersection which was intersected last
-fn ray_last(ray: &Ray, a: Intersection, b: Intersection) -> Intersection {
-    let a_distance = ray.distance(&a);
-    let b_distance = ray.distance(&b);
-
-    if a_distance > b_distance {a} else {b}
+    regions
 }

@@ -35,4 +35,5 @@
 | Behold the power of downsampling: better quality and faster renders | 2018-10-07 | ![](gallery/out13.png) |
 | Variable reflectiveness | 2018-10-07 | ![](gallery/out14.png) |
 | Did somebody say infinite mirrors? | 2018-10-07 | ![](gallery/out15.png) |
+| I'm going to stop myself here... | 2018-10-07 | ![](gallery/out16.png) |
 

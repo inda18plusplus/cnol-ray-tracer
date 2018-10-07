@@ -63,6 +63,15 @@ fn main() {
 fn create_scene() -> Scene {
     let mut scene = Scene::new();
 
+    create_objects(&mut scene);
+    create_walls(&mut scene);
+
+    create_lights(&mut scene);
+
+    scene
+}
+
+fn create_objects(scene: &mut Scene) {
     // Red sphere
     let shape = sphere([-1.0, -2.0, 5.5], 0.75);
     let material = Material::new(Color::new(1.0, 0.0, 0.0), 0.0, 0.3);
@@ -73,24 +82,43 @@ fn create_scene() -> Scene {
     let material = Material::new(Color::new(0.0, 1.0, 1.0), 0.0, 0.1);
     scene.add_object(shape, material);
 
-    // Difference of two spheres
-    let a = Box::new(sphere([1.2, -2.0, 4.5], 1.0));
-    let b = Box::new(sphere([0.7, -1.1, 4.5], 1.0));
-    let c = Box::new(sphere([0.5, -2.0, 4.3], 1.0));
-    let difference = Box::new(Shape::Difference(a, b));
-    let shape = Shape::Intersection(difference, c);
+    // Composite object
+    let a = sphere([1.2, -2.0, 4.5], 1.0);
+    let b = sphere([0.7, -1.1, 4.5], 1.0);
+    let c = sphere([0.5, -2.0, 4.8], 1.0);
+    let d = difference(a, b);
+    let shape = intersection(c, d);
 
-    let material = Material::new(Color::new(1.0, 1.0, 1.0), 1.0, 0.1);
+    let material = Material::new(Color::new(1.0, 1.0, 1.0), 1.0, 0.3);
     scene.add_object(shape, material);
 
+    // Pearls
+    let pearl = sphere([0.7, -2.0, 4.5], 0.1);
+    let material = Material::new(Color::new(0.0, 0.8, 0.6), 0.1, 0.2);
+    scene.add_object(pearl, material.clone());
 
+    let pearl = sphere([0.9, -1.95, 4.7], 0.1);
+    scene.add_object(pearl, material.clone());
+
+    let pearl = sphere([0.93, -2.0, 4.4], 0.1);
+    scene.add_object(pearl, material);
+}
+
+fn create_walls(scene: &mut Scene) {
     // Floor
     let shape = Shape::Plane(Plane {
         origin: Vector3::new(0.0, -3.0, 0.0),
         normal: Vector3::new(0.0, 1.0, 0.0),
     });
+    let material = Material::new(Color::new(1.0, 1.0, 1.0), 0.1, 0.3);
+    scene.add_object(shape, material);
 
-    let material = Material::new(Color::new(0.0, 0.1, 0.1), 0.0, 1.0);
+    // Ceiling
+    let shape = Shape::Plane(Plane {
+        origin: Vector3::new(0.0, 3.0, 0.0),
+        normal: Vector3::new(0.0, -1.0, 0.0),
+    });
+    let material = Material::new(Color::new(0.0, 0.0, 1.0), 0.1, 0.3);
     scene.add_object(shape, material);
 
     // Right wall
@@ -102,10 +130,17 @@ fn create_scene() -> Scene {
     scene.add_object(shape, material);
 
     // Left wall
-    let shape = Shape::Plane(Plane {
+    let wall = Shape::Plane(Plane {
         origin: Vector3::new(-3.0, 0.0, 0.0),
         normal: Vector3::new(1.0, 0.0, 0.0),
     });
+
+    let a = sphere([-2.5, 0.0, 5.0], 0.7);
+    let b = sphere([-4.0, 0.0, 5.0], 1.0);
+    let d = difference(a, b);
+    let shape = difference(wall, d);
+
+
     let material = Material::new(Color::new(1.0, 1.0, 0.0), 0.1, 0.3);
     scene.add_object(shape, material);
 
@@ -114,7 +149,7 @@ fn create_scene() -> Scene {
         origin: Vector3::new(0.0, 0.0, 7.0),
         normal: Vector3::new(0.0, 0.0, -1.0),
     });
-    let material = Material::new(Color::new(0.0, 0.0, 0.0), 0.0, 1.0);
+    let material = Material::new(Color::new(1.0, 0.0, 1.0), 0.1, 0.3);
     scene.add_object(shape, material);
 
     // Front wall
@@ -122,17 +157,11 @@ fn create_scene() -> Scene {
         origin: Vector3::new(0.0, 0.0, -1.0),
         normal: Vector3::new(0.0, 0.0, 1.0),
     });
-    let material = Material::new(Color::new(0.0, 0.0, 0.0), 0.0, 1.0);
+    let material = Material::new(Color::new(1.0, 1.0, 1.0), 0.1, 0.3);
     scene.add_object(shape, material);
+}
 
-    // Ceiling
-    let shape = Shape::Plane(Plane {
-        origin: Vector3::new(0.0, 3.0, 0.0),
-        normal: Vector3::new(0.0, -1.0, 0.0),
-    });
-    let material = Material::new(Color::new(0.0, 0.0, 1.0), 0.1, 0.3);
-    scene.add_object(shape, material);
-
+fn create_lights(scene: &mut Scene) {
     // Light
     let light = Light::Point(PointLight {
         point: Vector3::new(-2.2, 2.2, 2.0),
@@ -147,11 +176,7 @@ fn create_scene() -> Scene {
         size: 0.4
     });
     scene.add_light(light);
-
-
-    scene
 }
-
 
 fn sphere(center: [f64; 3], radius: f64) -> Shape {
     Shape::Sphere(Sphere {
@@ -162,6 +187,20 @@ fn sphere(center: [f64; 3], radius: f64) -> Shape {
         },
         radius
     })
+}
+
+fn intersection(a: Shape, b: Shape) -> Shape {
+    Shape::Intersection(
+        Box::new(a),
+        Box::new(b)
+    )
+}
+
+fn difference(a: Shape, b: Shape) -> Shape {
+    Shape::Difference(
+        Box::new(a),
+        Box::new(b)
+    )
 }
 
 
