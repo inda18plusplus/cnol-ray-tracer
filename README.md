@@ -7,13 +7,14 @@
 - [X] Ray-Sphere intersection
 - [X] Ray-Plane intersection
 - [X] Depth-testing
-- [ ] Composite objects
+- [X] Composite objects
   - Union
   - Difference
   - Intersection
   - Complement
 - [X] Reflections
 - [X] Shadows
+- [ ] Remove unnecessary square roots
 
 ## Gallery
 
@@ -30,4 +31,8 @@
 | Shiny! | 2018-10-06 | ![](gallery/out8.png) |
 | It's a blur. These are starting to take a while to render... | 2018-10-06 | ![](gallery/out9.png) |
 | Good enough | 2018-10-06 | ![](gallery/out11.png) |
+| Composite objects and drastically faster rendering times! | 2018-10-07 | ![](gallery/out12.png) |
+| Behold the power of downsampling: better quality and faster renders | 2018-10-07 | ![](gallery/out13.png) |
+| Variable reflectiveness | 2018-10-07 | ![](gallery/out14.png) |
+| Did somebody say infinite mirrors? | 2018-10-07 | ![](gallery/out15.png) |
 

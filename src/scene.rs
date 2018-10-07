@@ -18,9 +18,15 @@ pub struct Scene {
     lights: Vec<Light>
 }
 
-const BOUNCES: usize = 3;
-const LIGHT_SAMPLES: usize = 100;
-const BOUNCE_SAMPLES: usize = 20;
+const MAX_BOUNCES: usize = 40;
+const MAX_LIGHT_SAMPLES: usize = 20;
+const MAX_BOUNCE_SAMPLES: usize = 5;
+
+struct RayProperties {
+    bounces: usize,
+    light_samples: usize,
+    bounce_samples: usize
+}
 
 impl Scene {
     pub fn new() -> Scene {
@@ -47,7 +53,13 @@ impl Scene {
     }
 
     pub fn trace(&self, ray: Ray) -> Color {
-        if let Some(color) = self.trace_ray_color(&ray, BOUNCES) {
+        let properties = RayProperties {
+            bounces: MAX_BOUNCES,
+            light_samples: MAX_LIGHT_SAMPLES,
+            bounce_samples: MAX_BOUNCE_SAMPLES,
+        };
+
+        if let Some(color) = self.trace_ray_color(&ray, properties) {
             color
         } else {
             Color {
@@ -75,8 +87,8 @@ impl Scene {
     }
 
 
-    fn trace_ray_color(&self, ray: &Ray, max_bounces: usize) -> Option<Color> {
-        if max_bounces == 0 {
+    fn trace_ray_color(&self, ray: &Ray, properties: RayProperties) -> Option<Color> {
+        if properties.bounces == 0 {
             return None;
         }
 
@@ -87,10 +99,10 @@ impl Scene {
                 let point = entry.point - ray.direction * 0.0001;
                 let adjusted_entry = Intersection {point, normal: entry.normal};
 
-                let light_color = self.light_color(adjusted_entry.clone())
+                let light_color = self.light_color(adjusted_entry.clone(), properties.light_samples)
                     .multiply(material.color);
 
-                let bounce_color = self.bounce_color(ray, adjusted_entry, max_bounces, material.roughness);
+                let bounce_color = self.bounce_color(ray, adjusted_entry, properties, material);
 
                 return Some(ambient_color.add(light_color).add(bounce_color));
             }
@@ -120,18 +132,17 @@ impl Scene {
         hit.map(|(intersection, _, object)| (intersection, object))
     }
 
-    fn light_color(&self, entry: Intersection) -> Color {
+    fn light_color(&self, entry: Intersection, samples: usize) -> Color {
         let mut color = Color::black();
 
         for light in self.lights.iter() {
-            for sample in 0..LIGHT_SAMPLES {
+            for _ in 0..samples {
                 if let Some(distance) = self.distance_to_light(entry.point, light) {
                     let diffuse = Vector3::dot(entry.point - light.sample_point(), -entry.normal);
 
                     let brightness = light.brightness(distance) * if diffuse > 0.0 {diffuse} else {0.0};
 
-                    let light_color = light.color().apply_brightness(brightness /
-                        LIGHT_SAMPLES as f64);
+                    let light_color = light.color().apply_brightness(brightness / samples as f64);
 
                     color = color.add(light_color);
                 }
@@ -141,17 +152,27 @@ impl Scene {
         color
     }
 
-    fn bounce_color(&self, ray: &Ray, entry: Intersection, max_bounces: usize, roughness: f64) ->
-                                                                                           Color {
+    fn bounce_color(
+        &self,
+        ray: &Ray,
+        entry: Intersection,
+        properties: RayProperties,
+        material: &Material
+    ) -> Color {
         let mut bounce_color = Color::black();
 
-        for _ in 0..BOUNCE_SAMPLES {
-            let bounce_ray = Ray::scatter(ray, entry.clone(), roughness);
+        for _ in 0..properties.bounce_samples {
+            let bounce_ray = Ray::scatter(ray, entry.clone(), material.roughness);
 
-            if let Some(color) = self.trace_ray_color(&bounce_ray, max_bounces -
-                1) {
+            let bounce_properties = RayProperties {
+                bounces: properties.bounces - 1,
+                light_samples: (properties.light_samples as f64 / 4.0).ceil() as usize,
+                bounce_samples: (properties.bounce_samples as f64 / 5.0).ceil() as usize,
+            };
+
+            if let Some(color) = self.trace_ray_color(&bounce_ray, bounce_properties) {
                 bounce_color = bounce_color.add(
-                    color.apply_brightness(0.3 / BOUNCE_SAMPLES as f64)
+                    color.apply_brightness(material.reflectiveness / properties.bounce_samples as f64)
                 );
             }
         }

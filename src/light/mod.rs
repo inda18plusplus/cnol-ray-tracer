@@ -28,6 +28,6 @@ impl Light {
 
     /// Get the brightness of this light
     pub fn brightness(&self, distance: f64) -> f64 {
-        0.5 / distance
+        1.2 / (distance * distance)
     }
 }

@@ -49,7 +49,8 @@ fn main() {
 
     let start = time::Instant::now();
 
-    let image = trace_scene(Arc::new(scene), 800, 800);
+    let res = 800;
+    let image = trace_scene(Arc::new(scene), res, res);
 
     let end = time::Instant::now();
     let duration = end - start;
@@ -62,29 +63,26 @@ fn main() {
 fn create_scene() -> Scene {
     let mut scene = Scene::new();
 
-    let shape = Shape::Sphere(Sphere {
-        center: Vector3::new(-1.0, -1.25, 5.0),
-        radius: 0.75
-    });
-
-    let material = Material::new(Color::new(1.0, 0.0, 0.0), 0.0);
+    // Red sphere
+    let shape = sphere([-1.0, -2.0, 5.5], 0.75);
+    let material = Material::new(Color::new(1.0, 0.0, 0.0), 0.0, 0.3);
     scene.add_object(shape, material);
 
-    let shape = Shape::Sphere(Sphere {
-        center: Vector3::new(1.2, 1.25, 5.0),
-        radius: 0.75
-    });
-
-    let material = Material::new(Color::new(0.0, 1.0, 1.0), 0.0);
+    // Cyan sphere
+    let shape = sphere([1.2, 1.25, 5.0], 0.75);
+    let material = Material::new(Color::new(0.0, 1.0, 1.0), 0.0, 0.1);
     scene.add_object(shape, material);
 
-    let shape = Shape::Sphere(Sphere {
-        center: Vector3::new(1.2, -2.0, 4.0),
-        radius: 1.0
-    });
+    // Difference of two spheres
+    let a = Box::new(sphere([1.2, -2.0, 4.5], 1.0));
+    let b = Box::new(sphere([0.7, -1.1, 4.5], 1.0));
+    let c = Box::new(sphere([0.5, -2.0, 4.3], 1.0));
+    let difference = Box::new(Shape::Difference(a, b));
+    let shape = Shape::Intersection(difference, c);
 
-    let material = Material::new(Color::new(1.0, 1.0, 1.0), 0.0);
+    let material = Material::new(Color::new(1.0, 1.0, 1.0), 1.0, 0.1);
     scene.add_object(shape, material);
+
 
     // Floor
     let shape = Shape::Plane(Plane {
@@ -92,7 +90,7 @@ fn create_scene() -> Scene {
         normal: Vector3::new(0.0, 1.0, 0.0),
     });
 
-    let material = Material::new(Color::new(1.0, 1.0, 1.0), 0.1);
+    let material = Material::new(Color::new(0.0, 0.1, 0.1), 0.0, 1.0);
     scene.add_object(shape, material);
 
     // Right wall
@@ -100,7 +98,7 @@ fn create_scene() -> Scene {
         origin: Vector3::new(3.0, 0.0, 0.0),
         normal: Vector3::new(-1.0, 0.0, 0.0),
     });
-    let material = Material::new(Color::new(0.0, 1.0, 0.0), 0.1);
+    let material = Material::new(Color::new(0.0, 1.0, 0.0), 0.1, 0.3);
     scene.add_object(shape, material);
 
     // Left wall
@@ -108,7 +106,7 @@ fn create_scene() -> Scene {
         origin: Vector3::new(-3.0, 0.0, 0.0),
         normal: Vector3::new(1.0, 0.0, 0.0),
     });
-    let material = Material::new(Color::new(1.0, 1.0, 0.0), 0.1);
+    let material = Material::new(Color::new(1.0, 1.0, 0.0), 0.1, 0.3);
     scene.add_object(shape, material);
 
     // Back wall
@@ -116,7 +114,7 @@ fn create_scene() -> Scene {
         origin: Vector3::new(0.0, 0.0, 7.0),
         normal: Vector3::new(0.0, 0.0, -1.0),
     });
-    let material = Material::new(Color::new(1.0, 0.0, 1.0), 0.1);
+    let material = Material::new(Color::new(0.0, 0.0, 0.0), 0.0, 1.0);
     scene.add_object(shape, material);
 
     // Front wall
@@ -124,7 +122,7 @@ fn create_scene() -> Scene {
         origin: Vector3::new(0.0, 0.0, -1.0),
         normal: Vector3::new(0.0, 0.0, 1.0),
     });
-    let material = Material::new(Color::new(1.0, 1.0, 1.0), 0.1);
+    let material = Material::new(Color::new(0.0, 0.0, 0.0), 0.0, 1.0);
     scene.add_object(shape, material);
 
     // Ceiling
@@ -132,7 +130,7 @@ fn create_scene() -> Scene {
         origin: Vector3::new(0.0, 3.0, 0.0),
         normal: Vector3::new(0.0, -1.0, 0.0),
     });
-    let material = Material::new(Color::new(0.0, 0.0, 1.0), 0.1);
+    let material = Material::new(Color::new(0.0, 0.0, 1.0), 0.1, 0.3);
     scene.add_object(shape, material);
 
     // Light
@@ -146,7 +144,7 @@ fn create_scene() -> Scene {
     let light = Light::Point(PointLight {
         point: Vector3::new(-1.0, 0.2, 1.0),
         color: Color::white(),
-        size: 0.2
+        size: 0.4
     });
     scene.add_light(light);
 
@@ -154,8 +152,24 @@ fn create_scene() -> Scene {
     scene
 }
 
+
+fn sphere(center: [f64; 3], radius: f64) -> Shape {
+    Shape::Sphere(Sphere {
+        center: Vector3 {
+            x: center[0],
+            y: center[1],
+            z: center[2],
+        },
+        radius
+    })
+}
+
+
 fn trace_scene(scene: Arc<Scene>, image_width: u32, image_height: u32) -> DynamicImage {
-    let mut pixels = Arc::new(Mutex::new(get_pixels(image_width, image_height)));
+    // Render at twice the scale and downsample
+    let (render_width, render_height) = (image_width * 2, image_height * 2);
+
+    let pixels = Arc::new(Mutex::new(get_pixels(render_width, render_height)));
 
     let (sender, receiver) = mpsc::channel();
 
@@ -167,18 +181,18 @@ fn trace_scene(scene: Arc<Scene>, image_width: u32, image_height: u32) -> Dynami
         let scene = scene.clone();
 
         threads.push(thread::spawn(move || {
-            process_pixels(pixels, sender, scene, image_width, image_height);
+            process_pixels(pixels, sender, scene, render_width, render_height);
         }));
     }
 
-    let image = receive_image(receiver, image_width, image_height);
+    let image = receive_image(receiver, render_width, render_height);
 
     println!("Waiting for threads to join...");
     for thread in threads {
         thread.join().unwrap();
     }
 
-    image
+    image.resize(image_width, image_height, image::FilterType::Triangle)
 }
 
 

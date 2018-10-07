@@ -7,3 +7,13 @@ pub struct Intersection {
 }
 
 pub type EntryExit = (Option<Intersection>, Option<Intersection>);
+
+impl Intersection {
+    /// Inverts the normal
+    pub fn invert(self) -> Intersection {
+        Intersection {
+            normal: -self.normal,
+            ..self
+        }
+    }
+}
